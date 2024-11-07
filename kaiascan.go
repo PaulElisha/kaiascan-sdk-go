@@ -6,11 +6,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
-const (
-	BASE_URL string = "https://mainnet-oapi.kaiascan.io/"
-	CHAIN_ID string = "8217"
+var (
+	BASE_URL       = "https://mainnet-oapi.kaiascan.io/"
+	CHAIN_ID       = "8217"
+	tokensEndpoint = "api/v1/tokens"
+	nftsEndpoint   = "api/v1/nfts"
+	// blocksEndpoint = "api/v1/blocks"
 )
 
 type Address string
@@ -21,24 +25,30 @@ type ApiResponse[T any] struct {
 	Msg  string `json:"msg"`
 }
 
-func main() {
-	tokenInfo, err := GetFungibleToken("0x1234567890abcdef")
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-	fmt.Printf("Fungible Token Information: %+v\n", tokenInfo)
+type TokenInfo struct {
+	ContractType   string  `json:"contractType"`
+	Name           string  `json:"name"`
+	Symbol         string  `json:"symbol"`
+	Icon           string  `json:"icon"`
+	Decimal        int32   `json:"decimal"`
+	TotalSupply    float64 `json:"totalSupply"`
+	TotalTransfers int64   `json:"totalTransfers"`
+	OfficialSite   string  `json:"officialSite"`
+	BurnAmount     float64 `json:"burnAmount"`
+	TotalBurns     int64   `json:"totalBurns"`
 }
 
+// Reusable HTTP client with timeout
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
 func fetchApi[T any](urlStr string) (*ApiResponse[T], error) {
-	client := &http.Client{}
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, fmt.Errorf("error creating request for %s: %w", urlStr, err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	response, err := client.Do(req)
+	response, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %w", err)
 	}
@@ -63,12 +73,12 @@ func fetchApi[T any](urlStr string) (*ApiResponse[T], error) {
 	return &apiResponse, nil
 }
 
-func GetFungibleToken(tokenAddress Address) (*ApiResponse[any], error) {
+func GetFungibleToken(tokenAddress Address) (*ApiResponse[TokenInfo], error) {
 	params := url.Values{}
 	params.Add("tokenAddress", string(tokenAddress))
 
-	urlStr := fmt.Sprintf("%sapi/v1/tokens?%s", BASE_URL, params.Encode())
-	return fetchApi[any](urlStr)
+	urlStr := fmt.Sprintf("%s%s?%s", BASE_URL, tokensEndpoint, params.Encode())
+	return fetchApi[TokenInfo](urlStr)
 }
 
 func GetNftItem(nftAddress Address, tokenId string) (*ApiResponse[any], error) {
@@ -76,7 +86,7 @@ func GetNftItem(nftAddress Address, tokenId string) (*ApiResponse[any], error) {
 	params.Add("nftAddress", string(nftAddress))
 	params.Add("tokenId", tokenId)
 
-	urlStr := fmt.Sprintf("%sapi/v1/nfts?%s&tokenId=%s", BASE_URL, params.Encode(), tokenId)
+	urlStr := fmt.Sprintf("%s%s?%s&tokenId=%s", BASE_URL, nftsEndpoint, params.Encode(), tokenId)
 	return fetchApi[any](urlStr)
 }
 
