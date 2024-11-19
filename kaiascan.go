@@ -1,4 +1,4 @@
-package oklink
+package kaiascan
 
 import (
 	"encoding/json"
@@ -10,14 +10,30 @@ import (
 )
 
 var (
-	BASE_URL       = "https://mainnet-oapi.kaiascan.io/"
-	CHAIN_ID       = "8217"
-	tokensEndpoint = "api/v1/tokens"
-	nftsEndpoint   = "api/v1/nfts"
-	// blocksEndpoint = "api/v1/blocks"
+	BASE_URL = "https://mainnet-oapi.kaiascan.io/"
+	CHAIN_ID = "8217"
+
+	tokensEndpoint      = "api/v1/tokens"
+	nftsEndpoint        = "api/v1/nfts"
+	blocksEndpoint      = "api/v1/blocks"
+	transactionEndpoint = "api/v1/transactions"
+	contractEndpoint    = "api/v1/contracts"
+	transactionReceipts = "api/v1/transaction-receipts"
 )
 
-type Address string
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
+func SetEnvironment(isTestnet bool) {
+	if isTestnet {
+		BASE_URL = "https://kairos-oapi.kaiascan.io/"
+		CHAIN_ID = "1001"
+	} else {
+		BASE_URL = "https://mainnet-oapi.kaiascan.io/"
+		CHAIN_ID = "8217"
+	}
+}
+
+type Address = string
 
 type ApiResponse[T any] struct {
 	Code int    `json:"code"`
@@ -37,9 +53,6 @@ type TokenInfo struct {
 	BurnAmount     float64 `json:"burnAmount"`
 	TotalBurns     int64   `json:"totalBurns"`
 }
-
-// Reusable HTTP client with timeout
-var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 func fetchApi[T any](urlStr string) (*ApiResponse[T], error) {
 	req, err := http.NewRequest("GET", urlStr, nil)
@@ -86,7 +99,7 @@ func GetNftItem(nftAddress Address, tokenId string) (*ApiResponse[any], error) {
 	params.Add("nftAddress", string(nftAddress))
 	params.Add("tokenId", tokenId)
 
-	urlStr := fmt.Sprintf("%s%s?%s&tokenId=%s", BASE_URL, nftsEndpoint, params.Encode(), tokenId)
+	urlStr := fmt.Sprintf("%s%s?%s", BASE_URL, nftsEndpoint, params.Encode())
 	return fetchApi[any](urlStr)
 }
 
@@ -94,12 +107,12 @@ func GetContractCreationCode(contractAddress Address) (*ApiResponse[any], error)
 	params := url.Values{}
 	params.Add("contractAddress", string(contractAddress))
 
-	urlStr := fmt.Sprintf("%sapi/v1/contracts/creation-code?%s", BASE_URL, params.Encode())
+	urlStr := fmt.Sprintf("%s%s/creation-code?%s", BASE_URL, contractEndpoint, params.Encode())
 	return fetchApi[any](urlStr)
 }
 
 func GetLatestBlock() (*ApiResponse[any], error) {
-	urlStr := fmt.Sprintf("%sapi/v1/blocks/latest", BASE_URL)
+	urlStr := fmt.Sprintf("%s%s/latest", BASE_URL, blocksEndpoint)
 	return fetchApi[any](urlStr)
 }
 
@@ -107,20 +120,17 @@ func GetBlock(blockNumber int64) (*ApiResponse[any], error) {
 	params := url.Values{}
 	params.Add("blockNumber", fmt.Sprintf("%d", blockNumber))
 
-	urlStr := fmt.Sprintf("%sapi/v1/blocks?%s", BASE_URL, params.Encode())
-	return fetchApi[any](urlStr)
-}
-
-func GetBlocks() (*ApiResponse[any], error) {
-	urlStr := fmt.Sprintf("%sapi/v1/blocks", BASE_URL)
+	urlStr := fmt.Sprintf("%s%s?%s", BASE_URL, blocksEndpoint, params.Encode())
 	return fetchApi[any](urlStr)
 }
 
 func GetTransactionsOfBlock(blockNumber int64) (*ApiResponse[any], error) {
-	params := url.Values{}
-	params.Add("blockNumber", fmt.Sprintf("%d", blockNumber))
+	urlStr := fmt.Sprintf("%s%s/%d/transactions", BASE_URL, blocksEndpoint, blockNumber)
+	return fetchApi[any](urlStr)
+}
 
-	urlStr := fmt.Sprintf("%sapi/v1/blocks/%d/transactions", BASE_URL, blockNumber)
+func GetTransaction(transactionHash string) (*ApiResponse[any], error) {
+	urlStr := fmt.Sprintf("%s%s/%s", BASE_URL, transactionEndpoint, transactionHash)
 	return fetchApi[any](urlStr)
 }
 
@@ -128,15 +138,7 @@ func GetTransactionReceiptStatus(transactionHash string) (*ApiResponse[any], err
 	params := url.Values{}
 	params.Add("transactionHash", transactionHash)
 
-	urlStr := fmt.Sprintf("%sapi/v1/transaction-receipts/status?%s", BASE_URL, params.Encode())
-	return fetchApi[any](urlStr)
-}
-
-func GetTransaction(transactionHash string) (*ApiResponse[any], error) {
-	params := url.Values{}
-	params.Add("transactionHash", transactionHash)
-
-	urlStr := fmt.Sprintf("%sapi/v1/transactions/%s", BASE_URL, transactionHash)
+	urlStr := fmt.Sprintf("%s%s/status?%s", BASE_URL, transactionReceipts, params.Encode())
 	return fetchApi[any](urlStr)
 }
 
@@ -144,6 +146,6 @@ func GetContractSourceCode(contractAddress Address) (*ApiResponse[any], error) {
 	params := url.Values{}
 	params.Add("contractAddress", string(contractAddress))
 
-	urlStr := fmt.Sprintf("%sapi/v1/contracts/source-code?%s", BASE_URL, params.Encode())
+	urlStr := fmt.Sprintf("%s%s/source-code?%s", BASE_URL, contractEndpoint, params.Encode())
 	return fetchApi[any](urlStr)
 }
