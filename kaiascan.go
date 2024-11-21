@@ -86,6 +86,25 @@ func fetchApi[T any](urlStr string) (*ApiResponse[T], error) {
 	return &apiResponse, nil
 }
 
+func GetAccountKeyHistories(accountAddress string, page int, size int) (*ApiResponse[any], error) {
+	if page < 1 {
+		return nil, fmt.Errorf("page must be >= 1")
+	}
+	if size < 1 || size > 2000 {
+		return nil, fmt.Errorf("size must be between 1 and 2000")
+	}
+
+	queryParams := url.Values{}
+	queryParams.Add("page", fmt.Sprintf("%d", page))
+	queryParams.Add("size", fmt.Sprintf("%d", size))
+
+	encodedAddress := url.PathEscape(accountAddress)
+
+	urlStr := fmt.Sprintf("https://mainnet-oapi.kaiascan.io/api/v1/accounts/%s/key-histories?%s", encodedAddress, queryParams.Encode())
+
+	return fetchApi[any](urlStr)
+}
+
 func GetFungibleToken(tokenAddress Address) (*ApiResponse[TokenInfo], error) {
 	params := url.Values{}
 	params.Add("tokenAddress", string(tokenAddress))
@@ -111,8 +130,39 @@ func GetContractCreationCode(contractAddress Address) (*ApiResponse[any], error)
 	return fetchApi[any](urlStr)
 }
 
+func GetContractSourceCode(contractAddress Address) (*ApiResponse[any], error) {
+	params := url.Values{}
+	params.Add("contractAddress", string(contractAddress))
+
+	urlStr := fmt.Sprintf("%s%s/source-code?%s", BASE_URL, contractEndpoint, params.Encode())
+	return fetchApi[any](urlStr)
+}
+
 func GetLatestBlock() (*ApiResponse[any], error) {
 	urlStr := fmt.Sprintf("%s%s/latest", BASE_URL, blocksEndpoint)
+	return fetchApi[any](urlStr)
+}
+
+func GetLatestBlockBurns(page int, size int) (*ApiResponse[any], error) {
+	if page < 1 {
+		return nil, fmt.Errorf("page must be greater than or equal to 1")
+	}
+	if size < 1 || size > 2000 {
+		return nil, fmt.Errorf("size must be between 1 and 2000")
+	}
+
+	queryParams := url.Values{}
+	queryParams.Add("page", fmt.Sprintf("%d", page))
+	queryParams.Add("size", fmt.Sprintf("%d", size))
+
+	urlStr := fmt.Sprintf("%s%s/latest/burns?%s", BASE_URL, blocksEndpoint, queryParams.Encode())
+
+	return fetchApi[any](urlStr)
+}
+
+func GetLatestBlockRewards(blockNumber int) (*ApiResponse[any], error) {
+	urlStr := fmt.Sprintf("%s%s/latest/rewards?blockNumber=%d", BASE_URL, blocksEndpoint, blockNumber)
+
 	return fetchApi[any](urlStr)
 }
 
@@ -124,8 +174,80 @@ func GetBlock(blockNumber int64) (*ApiResponse[any], error) {
 	return fetchApi[any](urlStr)
 }
 
-func GetTransactionsOfBlock(blockNumber int64) (*ApiResponse[any], error) {
-	urlStr := fmt.Sprintf("%s%s/%d/transactions", BASE_URL, blocksEndpoint, blockNumber)
+func GetBlocks(
+	blockNumber int,
+	blockNumberStart *int,
+	blockNumberEnd *int,
+	page int,
+	size int,
+) (*ApiResponse[any], error) {
+	queryParams := url.Values{}
+
+	if blockNumberStart != nil {
+		queryParams.Add("blockNumberStart", fmt.Sprintf("%d", *blockNumberStart))
+	}
+
+	if blockNumberEnd != nil {
+		queryParams.Add("blockNumberEnd", fmt.Sprintf("%d", *blockNumberEnd))
+	}
+
+	if page >= 1 {
+		queryParams.Add("page", fmt.Sprintf("%d", page))
+	}
+
+	if size >= 1 && size <= 2000 {
+		queryParams.Add("size", fmt.Sprintf("%d", size))
+	}
+
+	urlStr := fmt.Sprintf("%s%s?blockNumber=%d&%s", BASE_URL, blocksEndpoint, blockNumber, queryParams.Encode())
+
+	return fetchApi[any](urlStr)
+}
+
+func GetBlockBurns(blockNumber int) (*ApiResponse[any], error) {
+	urlStr := fmt.Sprintf("%s%s/%d/burns", BASE_URL, blocksEndpoint, blockNumber)
+	return fetchApi[any](urlStr)
+}
+
+func GetBlockRewards(blockNumber int) (*ApiResponse[any], error) {
+	urlStr := fmt.Sprintf("%s%s/%d/rewards", BASE_URL, blocksEndpoint, blockNumber)
+	return fetchApi[any](urlStr)
+}
+
+func GetInternalTransactionsOfBlock(blockNumber int, page int, size int) (*ApiResponse[any], error) {
+	if page < 1 {
+		return nil, fmt.Errorf("page must be >= 1")
+	}
+	if size < 1 || size > 2000 {
+		return nil, fmt.Errorf("size must be between 1 and 2000")
+	}
+
+	queryParams := url.Values{}
+	queryParams.Add("page", fmt.Sprintf("%d", page))
+	queryParams.Add("size", fmt.Sprintf("%d", size))
+
+	urlStr := fmt.Sprintf("%s%s/%d/internal-transactions?%s", BASE_URL, blocksEndpoint, blockNumber, queryParams.Encode())
+
+	return fetchApi[any](urlStr)
+}
+
+func GetTransactionsOfBlock(blockNumber int, transactionType *string, page int, size int) (*ApiResponse[any], error) {
+	queryParams := url.Values{}
+
+	if transactionType != nil {
+		queryParams.Add("type", *transactionType)
+	}
+
+	if page >= 1 {
+		queryParams.Add("page", fmt.Sprintf("%d", page))
+	}
+
+	if size >= 1 && size <= 2000 {
+		queryParams.Add("size", fmt.Sprintf("%d", size))
+	}
+
+	urlStr := fmt.Sprintf("%s%s/%d/transactions?%s", BASE_URL, blocksEndpoint, blockNumber, queryParams.Encode())
+
 	return fetchApi[any](urlStr)
 }
 
@@ -142,10 +264,8 @@ func GetTransactionReceiptStatus(transactionHash string) (*ApiResponse[any], err
 	return fetchApi[any](urlStr)
 }
 
-func GetContractSourceCode(contractAddress Address) (*ApiResponse[any], error) {
-	params := url.Values{}
-	params.Add("contractAddress", string(contractAddress))
+func GetTransactionStatus(transactionHash string) (*ApiResponse[any], error) {
+	urlStr := fmt.Sprintf("%s%s/%s/status", BASE_URL, transactionEndpoint, url.PathEscape(transactionHash))
 
-	urlStr := fmt.Sprintf("%s%s/source-code?%s", BASE_URL, contractEndpoint, params.Encode())
 	return fetchApi[any](urlStr)
 }
