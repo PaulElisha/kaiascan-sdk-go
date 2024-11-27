@@ -8,6 +8,18 @@ import (
 	"testing"
 )
 
+func TestConfigureSDK(t *testing.T) {
+	ConfigureSDK(true)
+	if BASE_URL != BASE_URL_TESTNET || CHAIN_ID != CHAIN_ID_TESTNET {
+		t.Errorf("Testnet configuration failed. Got BASE_URL: %s, CHAIN_ID: %s", BASE_URL, CHAIN_ID)
+	}
+
+	ConfigureSDK(false)
+	if BASE_URL != BASE_URL_MAINNET || CHAIN_ID != CHAIN_ID_MAINNET {
+		t.Errorf("Mainnet configuration failed. Got BASE_URL: %s, CHAIN_ID: %s", BASE_URL, CHAIN_ID)
+	}
+}
+
 func mockApiResponse[T any](data T, code int, msg string) []byte {
 	response := ApiResponse[T]{Code: code, Data: data, Msg: msg}
 	jsonResponse, _ := json.Marshal(response)
@@ -15,6 +27,7 @@ func mockApiResponse[T any](data T, code int, msg string) []byte {
 }
 
 func TestGetFungibleToken(t *testing.T) {
+	ConfigureSDK(true)
 	mockToken := TokenInfo{
 		ContractType:   "ERC20",
 		Name:           "TestToken",

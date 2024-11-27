@@ -10,8 +10,14 @@ import (
 )
 
 var (
-	BASE_URL = "https://mainnet-oapi.kaiascan.io/"
-	CHAIN_ID = "8217"
+	BASE_URL_MAINNET = "https://mainnet-oapi.kaiascan.io/"
+	CHAIN_ID_MAINNET = "8217"
+
+	BASE_URL_TESTNET = "https://kairos-oapi.kaiascan.io/"
+	CHAIN_ID_TESTNET = "1001"
+
+	BASE_URL = BASE_URL_MAINNET
+	CHAIN_ID = CHAIN_ID_MAINNET
 
 	tokensEndpoint      = "api/v1/tokens"
 	nftsEndpoint        = "api/v1/nfts"
@@ -22,6 +28,16 @@ var (
 )
 
 var httpClient = &http.Client{Timeout: 10 * time.Second}
+
+func ConfigureSDK(isTestnet bool) {
+	if isTestnet {
+		BASE_URL = BASE_URL_TESTNET
+		CHAIN_ID = CHAIN_ID_TESTNET
+	} else {
+		BASE_URL = BASE_URL_MAINNET
+		CHAIN_ID = CHAIN_ID_MAINNET
+	}
+}
 
 type Address = string
 
