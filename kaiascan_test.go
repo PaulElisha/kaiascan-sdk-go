@@ -14,20 +14,6 @@ func mockApiResponse[T any](data T, code int, msg string) []byte {
 	return jsonResponse
 }
 
-func TestSetEnvironment(t *testing.T) {
-	SetEnvironment(true)
-	if BASE_URL != "https://kairos-oapi.kaiascan.io/" || CHAIN_ID != "1001" {
-		t.Fatalf("Testnet environment not set correctly")
-	}
-
-	SetEnvironment(false)
-	if BASE_URL != "https://mainnet-oapi.kaiascan.io/" || CHAIN_ID != "8217" {
-		t.Fatalf("Mainnet environment not set correctly")
-	}
-
-	log.Println("Environment switching test passed.")
-}
-
 func TestGetFungibleToken(t *testing.T) {
 	mockToken := TokenInfo{
 		ContractType:   "ERC20",
@@ -86,17 +72,4 @@ func TestGetFungibleToken_Error(t *testing.T) {
 		t.Fatalf("Expected non-zero response code, got %d", resp.Code)
 	}
 	log.Printf("Error Response: %v", err)
-}
-
-func TestEnvironmentIntegration(t *testing.T) {
-	SetEnvironment(true)
-	if BASE_URL != "https://kairos-oapi.kaiascan.io/" {
-		t.Fatalf("Failed to switch to Testnet environment")
-	}
-
-	SetEnvironment(false)
-	if BASE_URL != "https://mainnet-oapi.kaiascan.io/" {
-		t.Fatalf("Failed to switch to Mainnet environment")
-	}
-	log.Println("Environment integration test passed.")
 }

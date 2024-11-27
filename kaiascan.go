@@ -23,16 +23,6 @@ var (
 
 var httpClient = &http.Client{Timeout: 10 * time.Second}
 
-func SetEnvironment(isTestnet bool) {
-	if isTestnet {
-		BASE_URL = "https://kairos-oapi.kaiascan.io/"
-		CHAIN_ID = "1001"
-	} else {
-		BASE_URL = "https://mainnet-oapi.kaiascan.io/"
-		CHAIN_ID = "8217"
-	}
-}
-
 type Address = string
 
 type ApiResponse[T any] struct {
